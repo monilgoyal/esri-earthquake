@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>
+        2d-earthquake
+    </title>
+
+    <link rel="stylesheet" href="https://js.arcgis.com/4.24/esri/themes/light/main.css" />
+    <script src="https://js.arcgis.com/4.24/"></script>
+
+    <style>
+        html,
+        body,
+        #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+
+    <script>
+        require([
+            "esri/config",
+            "esri/Map",
+            "esri/layers/GeoJSONLayer",
+            "esri/views/MapView",
+            "esri/Basemap",
+            "esri/layers/TileLayer",
+            "esri/widgets/Legend",
+            "esri/widgets/Expand"
+        ], function(esriConfig, Map, GeoJSONLayer, MapView, Basemap, TileLayer, Legend, Expand) {
+
+            esriConfig.apiKey = "YOUR_API_KEY";  // Replace with your api key
+
+            const map = new Map({
+                basemap: "arcgis-topographic"
+            });
+
+            const view = new MapView({
+                container: "viewDiv",
+                map: map,
+                zoom: 3, // Zoom level
+                center: [-118.805, 34.027],
+            });
+
+            const url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson";
+
+            const earthquakesLayer = new GeoJSONLayer({
+                url: url,
+                copyright: "USGS Earthquakes",
+                // screenSizePerspectiveEnabled: false,
+                title: "Earthquakes in the last 30 days",
+                popupTemplate: {
+                    title: "Earthquake Info",
+                    content: "Magnitude <b>{mag}</b> {type} hit <b>{place}</b> on <b>{time}</b>",
+                    fieldInfos: [{
+                        fieldName: "time",
+                        format: {
+                            dateFormat: "short-date-short-time",
+                        },
+                    }, ],
+                },
+            });
+
+            map.add(earthquakesLayer);
+
+            // the symbol for each earthquake class is composed of multiple symbol layers
+
+            function createSymbol(color) {
+                return {
+                    type: "simple-marker", // autocasts as new SimpleMarkerSymbol()
+                    style: "circle",
+                    color,
+                    size: "16px",
+                };
+            }
+            const renderer = {
+                type: "class-breaks",
+                field: "mag",
+                legendOptions: {
+                    title: "Legend",
+                },
+                classBreakInfos: [{
+                    minValue: -2,
+                    maxValue: 5,
+                    symbol: createSymbol([255, 0, 0]),
+                    label: "Magnitude < 5",
+                }, {
+                    minValue: 5,
+                    maxValue: 7,
+                    symbol: createSymbol([0, 0, 255]),
+                    label: "Magnitude between 5 and 7",
+                }, {
+                    minValue: 7,
+                    maxValue: 10,
+                    symbol: createSymbol([0, 255, 0]),
+                    label: "Magnitude larger than 7",
+                }, ],
+            };
+
+            earthquakesLayer.renderer = renderer;
+
+
+            const legend = new Legend({
+                view: view,
+            })
+
+            view.ui.add(new Expand({
+                content: legend,
+                expanded: true
+            }), "top-right");
+        })
+    </script>
+</head>
+
+<body>
+    <div id="viewDiv"></div>
+</body>
+
+</html>
